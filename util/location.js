@@ -2,13 +2,11 @@ const request = require("request-promise")
 
 const HttpError = require("../models/http-error")
 
-const access_token = 'pk.eyJ1IjoibWF0dGZpY2tlIiwiYSI6ImNqNnM2YmFoNzAwcTMzM214NTB1NHdwbnoifQ.Or19S7KmYPHW8YjRz82v6g'
-
    const getCoordsForAddress = async (address) => {
       try {
         
           const response =  await request({
-              uri: `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${access_token}&cachebuster=1584019481444&autocomplete=true&country=id&types=address%2Cpoi%2Cplace%2Cregion%2Cdistrict`,
+             uri: `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${process.env.MAPBOX_API_KEY}&cachebuster=1584019481444&autocomplete=true&country=id&types=address%2Cpoi%2Cplace%2Cregion%2Cdistrict`,
               headers: {
                     'User-Agent': 'Request-Promise'
                 },

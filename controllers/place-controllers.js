@@ -1,5 +1,6 @@
-const { v4: uuidv4 } = require('uuid');
+const  { promises : fs } = require("fs")
 
+const { v4: uuidv4 } = require('uuid');
 const mongoose = require("mongoose") 
 
 const { validationResult } = require("express-validator")
@@ -69,7 +70,7 @@ const getPlacesByUserId = async (req, res, next) => {
         next(new HttpError('Invalid Input passes,  please check your data', 422)) 
     }
 
-    const { title, description, address, creator } = req.body
+    const { title, description, address } = req.body
     
      let coordinates;
     try {
@@ -83,15 +84,16 @@ const getPlacesByUserId = async (req, res, next) => {
         description,
         address,
         location: coordinates,
-        image: 'https://live.staticflickr.com/7907/46836605454_b666ae1b32_h.jpg',
-        creator
+        image: req.file.path,
+        creator: req.userData.userId
     });
 
     let user;
     try {
-        user = await User.findById(creator)
+        console.log("req user id",req.userData.userId)
+        user = await User.findById(req.userData.userId)
     } catch (err) {
-        const error = new HttpError(`Creating place failed, please try again later on ${err}`, 500)
+        const error = new HttpError('Creating place failed, please try again later', 500)
         return next(error) 
     }
 
@@ -146,9 +148,16 @@ const updatePlace = async (req,res,next)=>{
             const error = new HttpError('Something went wrong, please try again later', 500)
             return next(error)
         }
+       
+        console.log("P",place.creator.toString())
+        console.log("R",req.userData.userId)
+
+       if (place.creator.toString() !== req.userData.userId) {
+            const error = new HttpError('You are not allowed edited this place', 401)
+            return next(error)
+        }
 
         place.title = title;
-
         place.description = description;
 
         console.log(place)
@@ -181,6 +190,12 @@ const deletePlace = async (req, res, next ) => {
            const error = new HttpError("Could not find place for this id", 500)
            return next(error)
        }
+
+       if (place.creator.id !== req.userData.userId) {
+          const error = new HttpError('You are not allowed deleted this place', 401)
+          return next(error)
+        }
+       const imagePath = place.image
        
        try {
 
@@ -200,6 +215,13 @@ const deletePlace = async (req, res, next ) => {
           const error = new HttpError(`Something went wrong ${err}`, 500)
           return next(error) 
        }
+       
+       try {
+         await fs.unlink(imagePath)
+       } catch (err) {
+           console.error(err)
+       }
+       
    
        logger.info("DELETED PLACES")
        res.status(200).json({ message: "Delete place"})
